@@ -1,45 +1,65 @@
-# Secure Co-pilot 🛡
+# Secure Co-pilot 🛡️
 
-*Proactive, Privacy-First AI Assistant for Sensitive Text Fields*
+**Your Private, Proactive AI Writing Assistant**
 
----
-
-## Overview
-
-Cloud-based AI tools like ChatGPT are amazing, but they can’t safely touch sensitive professional data (performance reviews, contracts, patient notes, etc.). Secure Co-pilot solves this problem by providing *real-time, client-side AI suggestions* *without ever sending data to the cloud*.
-
-This is a *Chrome extension* that acts as a "data-blind" AI co-pilot. It:
-
-- Monitors text inputs and contenteditable fields.
-- Detects unprofessional or casual writing.
-- Suggests professional rewrites or grammar fixes *proactively*.
-- Runs entirely on-device (client-side) for *maximum privacy*.
+Secure Co-pilot is a powerful Chrome extension that helps you write professionally and effectively, with a core focus on privacy. It provides real-time suggestions for grammar, tone, and clarity, ensuring your sensitive data never leaves your computer.
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| *Proactive AI* | Suggests improvements as you type instead of waiting for corrections. |
-| *Privacy-first* | Data never leaves the user’s device; no cloud calls required for fallback logic. |
-| *AI Chaining* | Triage → Rewriter → Proofreader using Chrome built-in AI APIs (Gemini Nano). |
-| *Popup Dashboard* | Toggle extension on/off, choose AI mode (Auto / Professional / Grammar), and view activity. |
-| *Fallback Logic* | Regex-based quick classifier and rewrite/proofread for offline use. |
-| *Multi-Field Support* | Works on textareas and contenteditable elements across any website. |
+-   **Proactive Suggestions:** A subtle icon appears next to your text field, offering rewrites or grammar corrections as you type.
+-   **Three Powerful Modes:**
+    -   **Auto Mode:** Intelligently detects tone (casual, unprofessional) and suggests improvements.
+    -   **Professional Mode:** Actively rewrites text to be more formal, constructive, and suitable for a business context.
+    -   **Grammar Mode:** Focuses solely on correcting grammar and spelling mistakes.
+-   **Complete User Control:** Easily switch modes, disable the extension on specific websites, or turn it off entirely from the popup menu.
+-   **Works Everywhere:** Enhances your writing in `textarea` elements and `contenteditable` divs across the web.
+-   **100% On-Device Processing:** All AI analysis happens locally on your machine, even when you're offline.
 
----
+## 🔒 Privacy is Paramount
 
-## APIs Used
+This extension was built for professionals who handle sensitive information. For the Google Chrome review team and our users, we want to be crystal clear:
 
-- chrome.ai.prompt → Triage classification (Professional / Casual / Problematic)
-- chrome.ai.rewriter → Suggest professional rewrites
-- chrome.ai.proofreader → Grammar fixes
-- chrome.storage.local → Persistent user settings (enable/disable, AI mode)
-- chrome.runtime.sendMessage → Communication between content script, service worker, and popup
+**No user data is ever sent to an external server. All processing is done on your local device.**
 
-Fallbacks are implemented for users without Early Preview access or unsupported browsers.
+How is this possible?
+-   **`chrome.ai` API:** We use Chrome's built-in, on-device AI models (part of Project Gemini) for all suggestions. This allows for powerful AI assistance without a connection to the cloud.
+-   **`chrome.storage.local`:** All settings, including your list of disabled websites, are stored securely on your machine, not synced to the cloud.
+-   **No Network Requests:** The extension's core functionality makes no network requests with your text.
 
----
+## 🚀 How to Use
 
-## Project Structure
+1.  **Start Typing:** Begin writing in any supported text field on any website.
+2.  **See the Icon:** The 🛡️ icon will appear in the top-right of the text field once you've written enough text.
+3.  **Hover to View:** Hover over the icon to see the AI-powered suggestion.
+4.  **Accept or Dismiss:** Click "Accept" to replace your text with the suggestion, or "Dismiss" to keep your original text.
+5.  **Customize:** Click the extension icon in your Chrome toolbar to open the popup and change modes or disable the extension for the current site.
+
+## 📦 Installation
+
+### Recommended: From the Chrome Web Store
+*(Link will be here once published)*
+
+### For Developers: Local Installation
+1.  Clone this repository: `git clone https://github.com/your-username/secure-copilot.git`
+2.  Open Chrome and navigate to `chrome://extensions`.
+3.  Enable "Developer mode" in the top-right corner.
+4.  Click "Load unpacked".
+5.  Select the `secure-copilot` directory from the cloned repository.
+
+## 🛠️ Technology and Permissions
+
+This extension is built with Manifest V3, ensuring it meets modern standards for security and performance.
+
+-   **`ai`:** The core permission required to access Chrome's on-device AI models.
+-   **`storage`:** Used to save your personal settings (mode, disabled sites) locally on your machine.
+-   **`activeTab` & `host_permissions`:** Required for the content script to run on web pages and detect text fields. The extension is designed to be active only when you need it, and you can disable it on any site via the popup.
+
+## 🤝 Feedback & Contributions
+
+This project is open source! If you have feedback, find a bug, or want to contribute, please [open an issue](https://github.com/your-username/secure-copilot/issues) on our GitHub repository.
+
+## 📄 License
+
+This project is licensed under the MIT License.
