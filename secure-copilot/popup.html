@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Co-pilot Settings</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Secure Co-pilot 🛡️</h1>
+        <div id="statusIndicator" class="status-indicator hidden">
+            <div class="spinner"></div>
+            <span>AI is thinking...</span>
+        </div>
+    </div>
+
+    <div class="setting-row">
+        <label for="enabledToggle">Enable Assistant</label>
+        <label class="switch">
+            <input type="checkbox" id="enabledToggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <fieldset class="mode-group">
+        <legend>AI Mode</legend>
+        <label><input type="radio" name="mode" value="auto" checked> Auto</label>
+        <label><input type="radio" name="mode" value="professional"> Professional</label>
+        <label><input type="radio" name="mode" value="grammar"> Grammar</label>
+    </fieldset>
+
+    <div class="site-controls hidden">
+        <hr>
+        <p class="current-site-display">For <strong id="currentSite"></strong></p>
+        <button id="toggleSiteButton" class="site-toggle-btn">Disable on this site</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
