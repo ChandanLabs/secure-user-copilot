@@ -149,149 +149,122 @@ async function callProofreader(text) {
 
 // Main message listener (content script -> background)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Handle analyzeText messages
-  if (message && typeof message.text === "string") {
-    // async processing
+  // Handle analyzeText messages for AI processing
+  if (message && typeof message.text === 'string') {
     (async () => {
-      // Set processing status to true
-      await chrome.storage.local.set({ isProcessing: true });
+      const responsePayload = { suggestion: null, classification: null, reason: null, error: null };
       try {
-        // Respect user setting: enabled (default true)
-        const { enabled = true, mode = "auto", disabledSites = [] } = await chrome.storage.local.get(["enabled", "mode", "disabledSites"]);
+        await chrome.storage.local.set({ isProcessing: true });
+
+        const { enabled = true, mode = 'auto', disabledSites = [] } = await chrome.storage.local.get(['enabled', 'mode', 'disabledSites']);
         if (!enabled) {
-          return sendResponse({ suggestion: null, reason: "disabled" });
+          responsePayload.reason = 'disabled';
+          return; // Exit early, finally block will send response
         }
 
-        // Check if the site is on the disabled list
         const tabId = sender.tab?.id;
         const text = message.text;
         const elementId = message.elementId;
- 
+
         if (tabId) {
-            const tab = await chrome.tabs.get(tabId);
-            const hostname = tab.url ? new URL(tab.url).hostname : null;
-            if (hostname && disabledSites.includes(hostname)) {
-                // Explicitly respond that the site is disabled
-                sendResponse({ suggestion: null, reason: "site_disabled" });
-                return;
-                return sendResponse({ suggestion: null, reason: "site_disabled" });
-            }
+          const tab = await chrome.tabs.get(tabId);
+          const hostname = tab.url ? new URL(tab.url).hostname : null;
+          if (hostname && disabledSites.includes(hostname)) {
+            responsePayload.reason = 'site_disabled';
+            return; // Exit early
+          }
         }
 
-        // If text is too short, ignore
         if (!text || text.trim().length < 6) {
-          sendResponse({ suggestion: null, reason: "too_short" });
-          return;
+          responsePayload.reason = 'too_short';
+          return; // Exit early
         }
 
-        // 1) TRIAGE: determine Professional / Casual / Problematic
-        let classification = null;
-
-        // AI availability check
         const isAiAvailable = !!(chrome.ai && typeof chrome.ai.prompt === 'function');
+        let classification;
 
-        // Prefer chrome.ai prompt if available
         if (isAiAvailable) {
           try {
             const call = chrome.ai.prompt({ prompt: TRIAGE_PROMPT(text), max_output_tokens: 8 });
-            const triageRes = await withTimeout(call, API_TIMEOUT, "Triage prompt timeout");
-            // Many chrome.ai responses may be under different keys; attempt to read common ones
-            const triageText = (triageRes?.output_text || triageRes?.text || triageRes?.result || "").trim();
-            classification = triageText.split(/\s+/)[0];
-            if (!classification) classification = quickClassifier(text);
+            const triageRes = await withTimeout(call, API_TIMEOUT, 'Triage prompt timeout');
+            const triageText = (triageRes?.output_text || triageRes?.text || triageRes?.result || '').trim();
+            classification = triageText.split(/\s+/)[0] || quickClassifier(text);
           } catch (e) {
-            console.warn("Secure Co-pilot: triage failed, using fallback classifier", e);
+            console.warn('Secure Co-pilot: triage failed, using fallback classifier', e);
             classification = quickClassifier(text);
           }
         } else {
           classification = quickClassifier(text);
         }
+        
+        responsePayload.classification = classification;
 
-        // If user selected a strict mode, override behavior (e.g., "grammar" mode)
-        // mode: "auto" | "professional" | "grammar"
-        const userMode = mode || "auto";
-        if (userMode === "professional") classification = "Problematic"; // force rewrite behavior
-        if (userMode === "grammar") classification = "Professional";
+        const userMode = mode || 'auto';
+        if (userMode === 'professional') classification = 'Problematic';
+        if (userMode === 'grammar') classification = 'Professional';
 
-        // 2) ACTION based on classification
         let suggestion = null;
         let reason = null;
         let type = null;
 
-        if (classification === "Problematic" || classification === "Casual") {
-          // REWRITE path
+        if (classification === 'Problematic' || classification === 'Casual') {
           reason = `Detected as ${classification}`;
-          type = "Rewrite";
-
-          // Try Rewriter API variants safely with timeout
-          if (isAiAvailable) {
-            try {
-              suggestion = await callRewriter(text);
-            } catch (e) {
-              console.warn("Secure Co-pilot: rewriter API failed, fallback to quickRewrite", e);
-              suggestion = quickRewrite(text);
-            }
-          } else {
+          type = 'Rewrite';
+          try {
+            suggestion = isAiAvailable ? await callRewriter(text) : quickRewrite(text);
+          } catch (e) {
+            console.warn('Secure Co-pilot: rewriter API failed, fallback to quickRewrite', e);
             suggestion = quickRewrite(text);
           }
-        } else if (classification === "Professional") {
-          // PROOFREAD path - only when userMode !== grammar forced earlier
-          type = "Grammar";
-          reason = "Professional tone detected; checking grammar";
-
-          if (isAiAvailable) {
-            try {
-              suggestion = await callProofreader(text);
-            } catch (e) {
-              console.warn("Secure Co-pilot: proofreader failed, fallback to quickProofread", e);
-              const fallback = quickProofread(text);
-              suggestion = fallback === text ? null : fallback;
+        } else if (classification === 'Professional') {
+          reason = 'Professional tone detected; checking grammar';
+          type = 'Grammar';
+          try {
+            if (isAiAvailable) {
+                suggestion = await callProofreader(text);
+            } else {
+                const fallback = quickProofread(text);
+                suggestion = fallback !== text ? fallback : null;
             }
-          } else {
-            // fallback
+          } catch (e) {
+            console.warn('Secure Co-pilot: proofreader failed, fallback to quickProofread', e);
             const fallback = quickProofread(text);
-            suggestion = fallback === text ? null : fallback;
+            suggestion = fallback !== text ? fallback : null;
           }
-        } else {
-          // Unknown classification -> do nothing
-          suggestion = null;
         }
+        
+        responsePayload.suggestion = suggestion;
+        responsePayload.reason = reason;
 
-        // If we have a suggestion, deliver it to the content script attached to the tab
         if (suggestion && typeof tabId !== 'undefined') {
-          await sendSuggestionToTab(tabId, elementId, {
-            suggestion,
-            type,
-            reason,
-          });
+          await sendSuggestionToTab(tabId, elementId, { suggestion, type, reason });
         }
 
-        // sendResponse back to caller (optional)
-        sendResponse({ suggestion: suggestion || null, classification, reason });
       } catch (err) {
-        console.error("Secure Co-pilot: failure in analyze pipeline", err);
-        try { sendResponse({ suggestion: null, error: (err && err.message) || String(err) }); } catch {}
+        console.error('Secure Co-pilot: failure in analyze pipeline', err);
+        responsePayload.error = (err && err.message) || String(err);
       } finally {
-        // Always set processing status to false when done
         await chrome.storage.local.set({ isProcessing: false });
+        // This is the single, guaranteed point of response.
+        sendResponse(responsePayload);
       }
     })();
 
-    // Indicate we'll respond asynchronously
-    return true;
+    return true; // Indicate we'll respond asynchronously
   }
 
-  // Handle control messages from popup
-  if (message && message.command === "toggle") {
-    chrome.storage.local.set({ enabled: !!message.enabled });
-    sendResponse({ ok: true });
-    return true;
+  // Handle synchronous control messages from the popup
+  if (message && message.command) {
+    switch (message.command) {
+      case 'toggle':
+        chrome.storage.local.set({ enabled: !!message.enabled });
+        sendResponse({ ok: true });
+        break;
+      case 'modeChange':
+        chrome.storage.local.set({ mode: message.mode });
+        sendResponse({ ok: true });
+        break;
+    }
+    return true; // Required for sendResponse to be valid in some cases
   }
-  if (message && message.command === "modeChange") {
-    chrome.storage.local.set({ mode: message.mode });
-    sendResponse({ ok: true });
-    return true;
-  }
-
-  // otherwise ignore
 });

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleSiteButton = document.getElementById('toggleSiteButton');
 
   let currentHostname = null;
+  let activeTabId = null;
 
   const updateStatusIndicator = (isProcessing) => {
     statusIndicator.classList.toggle('hidden', !isProcessing);
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab && tab.url && tab.url.startsWith('http')) {
       currentHostname = new URL(tab.url).hostname;
+      activeTabId = tab.id;
     }
 
     const {
@@ -46,9 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 2. Listen for changes to the master toggle
-  enabledToggle.addEventListener('change', () => {
+  enabledToggle.addEventListener('change', async () => {
     const isEnabled = enabledToggle.checked;
-    chrome.storage.local.set({ enabled: isEnabled });
+    await chrome.storage.local.set({ enabled: isEnabled });
+    // Reload the active tab to make the change effective immediately
+    if (activeTabId) {
+      chrome.tabs.reload(activeTabId);
+    }
+    window.close();
   });
 
   // 3. Listen for changes to the AI mode
@@ -63,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Listen for site toggle button
   toggleSiteButton.addEventListener('click', async () => {
-    if (!currentHostname) return;
+    if (!currentHostname || !activeTabId) return;
 
     const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
     const isSiteDisabled = disabledSites.includes(currentHostname);
@@ -78,9 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     await chrome.storage.local.set({ disabledSites: newDisabledSites });
 
-    // Update UI immediately
-    toggleSiteButton.textContent = !isSiteDisabled ? 'Enable on this site' : 'Disable on this site';
-    toggleSiteButton.classList.toggle('reenable', !isSiteDisabled);
+    // Reload the tab to apply the change, then close the popup
+    chrome.tabs.reload(activeTabId);
+    window.close();
   });
 
   // 5. Listen for storage changes to update status in real-time

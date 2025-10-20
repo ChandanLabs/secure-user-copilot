@@ -150,17 +150,19 @@ function showSuggestionUI(target, data) {
 
   document.body.appendChild(bubble);
 
-  // --- DYNAMIC POSITIONING LOGIC ---
+  // --- DYNAMIC POSITIONING LOGIC (IMPROVED) ---
   const updatePosition = () => {
     const rect = target.getBoundingClientRect();
     bubble.style.position = "absolute";
-    bubble.style.zIndex = "9999";
-    bubble.style.top = `${window.scrollY + rect.bottom + 5}px`;
-    bubble.style.left = `${window.scrollX + rect.left}px`;
+    // Use a very high z-index to appear on top of most UIs
+    bubble.style.zIndex = "2147483647";
+    // Position at top-right corner of the element, with a small offset
+    bubble.style.top = `${window.scrollY + rect.top + 5}px`;
+    bubble.style.left = `${window.scrollX + rect.right - 33}px`; // Approx width of icon + padding
   };
 
   const throttledUpdate = throttle(updatePosition, 100);
-  window.addEventListener('scroll', throttledUpdate, true); // Use capture to get all scroll events
+  window.addEventListener('scroll', throttledUpdate, true);
   window.addEventListener('resize', throttledUpdate);
 
   // --- CLEANUP LOGIC ---
@@ -190,7 +192,7 @@ function showSuggestionUI(target, data) {
   updatePosition();
 }
 
-// Add global CSS for bubble
+// Add global CSS for bubble (IMPROVED)
 const style = document.createElement("style");
 style.textContent = `
 :root {
@@ -201,7 +203,8 @@ style.textContent = `
   --sc-border-color: #e5e5ea;
 }
 .secure-copilot-bubble {
-  position: relative;
+  /* This is the container for the icon and its tooltip */
+  position: absolute; 
   font-family: var(--sc-font);
   font-size: 14px;
   line-height: 1.4;
@@ -222,7 +225,7 @@ style.textContent = `
 .secure-copilot-tooltip {
   position: absolute;
   bottom: 100%;
-  left: 0;
+  right: 0; /* Position tooltip to the left of the icon */
   margin-bottom: 8px;
   background: #fff;
   border: 1px solid var(--sc-border-color);
@@ -230,7 +233,7 @@ style.textContent = `
   padding: 12px;
   width: 300px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 10;
+  z-index: 1; /* Stacks above the icon within the bubble */
   /* Hidden by default, shown on hover */
   opacity: 0;
   transform: translateY(5px);

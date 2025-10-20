@@ -3,7 +3,7 @@
   "name": "Secure Co-pilot",
   "version": "1.0",
   "description": "Proactive, privacy-first AI assistant for sensitive text fields",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "ai"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "service-worker.js"
