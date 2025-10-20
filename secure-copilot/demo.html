@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Co-pilot Demo</title>
+</head>
+<body>
+    <h1>Secure Co-pilot Demo Page</h1>
+    <p>This is a demo page to test the Secure Co-pilot extension. Type in the textareas below to trigger AI suggestions.</p>
+
+    <h2>Textarea 1</h2>
+    <textarea id="textarea1" rows="4" cols="50" placeholder="Type something here..."></textarea>
+
+    <h2>Textarea 2</h2>
+    <textarea id="textarea2" rows="4" cols="50" placeholder="Type something else here..."></textarea>
+
+    <h2>ContentEditable Div</h2>
+    <div contenteditable="true" id="editableDiv" style="border: 1px solid #ccc; padding: 10px; min-height: 100px;">
+        This is an editable div. Type here to test.
+    </div>
+
+    <script>
+        // Optional: Add some sample text for testing
+        document.getElementById('textarea1').value = "This is a sample text that might need improvement.";
+        document.getElementById('textarea2').value = "Another example with potential issues.";
+    </script>
+</body>
+</html>

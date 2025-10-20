@@ -103,21 +103,52 @@ async function sendSuggestionToTab(tabId, elementId, payload) {
   }
 }
 
+// ---------- AI API Callers (handles different API names) ----------
+
+async function callRewriter(text) {
+    const instruction = REWRITE_INSTRUCTION(text);
+    let call;
+
+    if (typeof chrome.ai.rewriter === "function") {
+        call = chrome.ai.rewriter({ instruction, max_output_tokens: 256 });
+    } else if (typeof chrome.ai.rewrite === "function") {
+        // Fallback for older API naming
+        call = chrome.ai.rewrite({ prompt: instruction, max_output_tokens: 256 });
+    } else {
+        throw new Error("No rewriter function available on chrome.ai");
+    }
+
+    const res = await withTimeout(call, API_TIMEOUT, "Rewriter timeout");
+    // Handle various possible response keys
+    return (res?.output_text || res?.rewrittenText || res?.text || "").trim();
+}
+
+async function callProofreader(text) {
+    const instruction = PROOFREAD_INSTRUCTION(text);
+    let call;
+
+    if (typeof chrome.ai.proofreader === "function") {
+        call = chrome.ai.proofreader({ prompt: instruction, max_output_tokens: 128 });
+    } else if (typeof chrome.ai.proofread === "function") {
+        call = chrome.ai.proofread({ prompt: instruction, max_output_tokens: 128 });
+    } else if (typeof chrome.ai.proof === "function") {
+        // Last resort for older API naming
+        call = chrome.ai.proof({ prompt: instruction, max_output_tokens: 128 });
+    } else {
+        throw new Error("No proofreader function available on chrome.ai");
+    }
+
+    const res = await withTimeout(call, API_TIMEOUT, "Proofreader timeout");
+    const suggestion = (res?.output_text || res?.text || "").trim();
+
+    // If suggestion equals input (no change), return null
+    if (!suggestion || suggestion.trim() === text.trim()) return null;
+
+    return suggestion;
+}
+
 // Main message listener (content script -> background)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Handle control messages
-  if (message && message.command === "toggle") {
-    // Update stored enabled setting
-    chrome.storage.local.set({ enabled: !!message.enabled });
-    sendResponse({ ok: true });
-    return true;
-  }
-  if (message && message.command === "modeChange") {
-    chrome.storage.local.set({ mode: message.mode });
-    sendResponse({ ok: true });
-    return true;
-  }
-
   // Handle analyzeText messages
   if (message && typeof message.text === "string") {
     // async processing
@@ -128,24 +159,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Respect user setting: enabled (default true)
         const { enabled = true, mode = "auto", disabledSites = [] } = await chrome.storage.local.get(["enabled", "mode", "disabledSites"]);
         if (!enabled) {
-          // do nothing
-          sendResponse({ suggestion: null, reason: "disabled" });
-          return;
+          return sendResponse({ suggestion: null, reason: "disabled" });
         }
 
         // Check if the site is on the disabled list
         const tabId = sender.tab?.id;
+        const text = message.text;
+        const elementId = message.elementId;
+ 
         if (tabId) {
             const tab = await chrome.tabs.get(tabId);
             const hostname = tab.url ? new URL(tab.url).hostname : null;
             if (hostname && disabledSites.includes(hostname)) {
-                return; // Silently stop execution for disabled sites
+                // Explicitly respond that the site is disabled
+                sendResponse({ suggestion: null, reason: "site_disabled" });
+                return;
+                return sendResponse({ suggestion: null, reason: "site_disabled" });
             }
         }
-
-        const text = message.text;
-        const elementId = message.elementId;
-        const tabId = sender.tab?.id;
 
         // If text is too short, ignore
         if (!text || text.trim().length < 6) {
@@ -156,8 +187,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 1) TRIAGE: determine Professional / Casual / Problematic
         let classification = null;
 
+        // AI availability check
+        const isAiAvailable = !!(chrome.ai && typeof chrome.ai.prompt === 'function');
+
         // Prefer chrome.ai prompt if available
-        if (chrome.ai && typeof chrome.ai.prompt === "function") {
+        if (isAiAvailable) {
           try {
             const call = chrome.ai.prompt({ prompt: TRIAGE_PROMPT(text), max_output_tokens: 8 });
             const triageRes = await withTimeout(call, API_TIMEOUT, "Triage prompt timeout");
@@ -186,22 +220,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         if (classification === "Problematic" || classification === "Casual") {
           // REWRITE path
-          reason = Detected as ${classification};
+          reason = `Detected as ${classification}`;
           type = "Rewrite";
 
           // Try Rewriter API variants safely with timeout
-          if (chrome.ai && (typeof chrome.ai.rewriter === "function" || typeof chrome.ai.rewrite === "function")) {
+          if (isAiAvailable) {
             try {
-              // Some builds use chrome.ai.rewriter(...) or chrome.ai.rewrite(...)
-              if (typeof chrome.ai.rewriter === "function") {
-                const call = chrome.ai.rewriter({ instruction: REWRITE_INSTRUCTION(text), max_output_tokens: 256 });
-                const res = await withTimeout(call, API_TIMEOUT, "Rewriter timeout");
-                suggestion = (res?.output_text || res?.rewrittenText || res?.text || "").trim();
-              } else {
-                const call = chrome.ai.rewrite({ prompt: REWRITE_INSTRUCTION(text), max_output_tokens: 256 });
-                const res = await withTimeout(call, API_TIMEOUT, "Rewrite timeout");
-                suggestion = (res?.output_text || res?.rewrittenText || res?.text || "").trim();
-              }
+              suggestion = await callRewriter(text);
             } catch (e) {
               console.warn("Secure Co-pilot: rewriter API failed, fallback to quickRewrite", e);
               suggestion = quickRewrite(text);
@@ -214,25 +239,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           type = "Grammar";
           reason = "Professional tone detected; checking grammar";
 
-          if (chrome.ai && (typeof chrome.ai.proofreader === "function" || typeof chrome.ai.proofread === "function" || typeof chrome.ai.proof === "function")) {
+          if (isAiAvailable) {
             try {
-              // some implementations vary
-              if (typeof chrome.ai.proofreader === "function") {
-                const call = chrome.ai.proofreader({ prompt: PROOFREAD_INSTRUCTION(text), max_output_tokens: 128 });
-                const res = await withTimeout(call, API_TIMEOUT, "Proofreader timeout");
-                suggestion = (res?.output_text || res?.text || "").trim();
-              } else if (typeof chrome.ai.proofread === "function") {
-                const call = chrome.ai.proofread({ prompt: PROOFREAD_INSTRUCTION(text), max_output_tokens: 128 });
-                const res = await withTimeout(call, API_TIMEOUT, "Proofread timeout");
-                suggestion = (res?.output_text || res?.text || "").trim();
-              } else {
-                // last resort
-                const call = chrome.ai.proof({ prompt: PROOFREAD_INSTRUCTION(text), max_output_tokens: 128 });
-                const res = await withTimeout(call, API_TIMEOUT, "Proof timeout");
-                suggestion = (res?.output_text || res?.text || "").trim();
-              }
-              // If suggestion equals input (no change), ignore
-              if (!suggestion || suggestion.trim() === text.trim()) suggestion = null;
+              suggestion = await callProofreader(text);
             } catch (e) {
               console.warn("Secure Co-pilot: proofreader failed, fallback to quickProofread", e);
               const fallback = quickProofread(text);
@@ -249,7 +258,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         // If we have a suggestion, deliver it to the content script attached to the tab
-        if (suggestion && typeof tabId !== "undefined") {
+        if (suggestion && typeof tabId !== 'undefined') {
           await sendSuggestionToTab(tabId, elementId, {
             suggestion,
             type,
@@ -269,6 +278,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })();
 
     // Indicate we'll respond asynchronously
+    return true;
+  }
+
+  // Handle control messages from popup
+  if (message && message.command === "toggle") {
+    chrome.storage.local.set({ enabled: !!message.enabled });
+    sendResponse({ ok: true });
+    return true;
+  }
+  if (message && message.command === "modeChange") {
+    chrome.storage.local.set({ mode: message.mode });
+    sendResponse({ ok: true });
     return true;
   }
 
