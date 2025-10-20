@@ -2,9 +2,16 @@
 
 **Your Private, Proactive AI Writing Assistant**
 
-Secure Co-pilot is a powerful Chrome extension that helps you write professionally and effectively, with a core focus on privacy. It provides real-time suggestions for grammar, tone, and clarity, ensuring your sensitive data never leaves your computer.
+> A Chrome Extension built for the Google Chrome Built-in AI Challenge 2025  
+
+>Secure Co-pilot is a powerful Chrome extension that helps you write professionally and effectively, with a core focus on privacy. It provides real-time suggestions for grammar, tone, and clarity, ensuring your sensitive data never leaves your computer.
 
 ---
+## 🚀 Overview
+*Secure Co-pilot* is a context-aware AI assistant integrated directly into Chrome.  
+It helps users rewrite, refine, and enhance text inside any webpage’s text fields — securely and privately.  
+Unlike cloud-based tools, this extension leverages *on-device AI APIs* (chrome.ai) to ensure zero data leakage.
+
 
 ## ✨ Key Features
 
@@ -14,8 +21,16 @@ Secure Co-pilot is a powerful Chrome extension that helps you write professional
     -   **Professional Mode:** Actively rewrites text to be more formal, constructive, and suitable for a business context.
     -   **Grammar Mode:** Focuses solely on correcting grammar and spelling mistakes.
 -   **Complete User Control:** Easily switch modes, disable the extension on specific websites, or turn it off entirely from the popup menu.
+  - ⚙   
+  - Enable / Disable globally or per-site  
+  - Block or unblock specific sites  
+  - “Clear Data” option removes all stored preferences  
+  - 🖼 *Clean, Minimal UI* — Suggestion bubble appears neatly above text fields without disturbing the page layout.  
+  - ⚙ *Offline-Ready* — runs fully offline once installed
+
 -   **Works Everywhere:** Enhances your writing in `textarea` elements and `contenteditable` divs across the web.
 -   **100% On-Device Processing:** All AI analysis happens locally on your machine, even when you're offline.
+
 
 ## 🔒 Privacy is Paramount
 
@@ -24,7 +39,7 @@ This extension was built for professionals who handle sensitive information. For
 **No user data is ever sent to an external server. All processing is done on your local device.**
 
 How is this possible?
--   **`chrome.ai` API:** We use Chrome's built-in, on-device AI models (part of Project Gemini) for all suggestions. This allows for powerful AI assistance without a connection to the cloud.
+-   **`chrome.ai` API:** We use Chrome's built-in, on-device AI models (part of Project Gemini Nano) for all suggestions. This allows for powerful AI assistance without a connection to the cloud.
 -   **`chrome.storage.local`:** All settings, including your list of disabled websites, are stored securely on your machine, not synced to the cloud.
 -   **No Network Requests:** The extension's core functionality makes no network requests with your text.
 
@@ -42,7 +57,7 @@ How is this possible?
 *(Link will be here once published)*
 
 ### For Developers: Local Installation
-1.  Clone this repository: `git clone https://github.com/your-username/secure-copilot.git`
+1.  Clone this repository: `git clone https://github.com/ChandanLabs/secure-copilot.git`
 2.  Open Chrome and navigate to `chrome://extensions`.
 3.  Enable "Developer mode" in the top-right corner.
 4.  Click "Load unpacked".
@@ -58,7 +73,7 @@ This extension is built with Manifest V3, ensuring it meets modern standards for
 
 ## 🤝 Feedback & Contributions
 
-This project is open source! If you have feedback, find a bug, or want to contribute, please [open an issue](https://github.com/your-username/secure-copilot/issues) on our GitHub repository.
+This project is open source! If you have feedback, find a bug, or want to contribute, please [open an issue](https://github.com/ChandanLabs/secure-copilot/issues) on our GitHub repository.
 
 ## 📄 License
 
