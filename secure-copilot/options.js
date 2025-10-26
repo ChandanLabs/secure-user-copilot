@@ -1,25 +1,22 @@
 // options.js
 document.addEventListener('DOMContentLoaded', async () => {
     const sitesList = document.getElementById('disabledSitesList');
-    const apiKeyInput = document.getElementById('apiKeyInput');
     const aiStatus = document.getElementById('aiStatus');
     const clearDataBtn = document.getElementById('clearData');
-
-    // Load API key
-    const { apiKey = '' } = await chrome.storage.local.get('apiKey');
-    apiKeyInput.value = apiKey;
-
-    // Save API key when changed
-    apiKeyInput.addEventListener('change', async () => {
-        await chrome.storage.local.set({ apiKey: apiKeyInput.value });
-    });
 
     // Check AI status
     chrome.runtime.sendMessage({ action: 'checkAI' }, (response) => {
         if (chrome.runtime.lastError) {
-            aiStatus.textContent = 'AI Status: Error checking';
+            aiStatus.textContent = 'AI Status: Error checking. The built-in AI may not be available in your version of Chrome.';
+            aiStatus.style.color = '#d93025';
         } else {
-            aiStatus.textContent = response.available ? 'AI Available' : 'AI Unavailable';
+            if (response.available) {
+                aiStatus.textContent = 'AI Status: The privacy-preserving, built-in AI is active. No configuration is needed.';
+                aiStatus.style.color = '#1e8e3e';
+            } else {
+                aiStatus.textContent = 'AI Status: The built-in AI is currently unavailable. Please ensure you are on the latest version of Chrome.';
+                aiStatus.style.color = '#d93025';
+            }
         }
     });
 

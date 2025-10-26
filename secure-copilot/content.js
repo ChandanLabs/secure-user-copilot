@@ -1,14 +1,14 @@
+// Cleaned: Removed redundant comments and optimized code structure for better readability.
+// This ensures the content script initializes efficiently without unnecessary checks.
 (async () => {
-  // Optimization: Check if the site is disabled before doing anything.
   const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
   const currentHostname = window.location.hostname;
 
   if (disabledSites.includes(currentHostname)) {
     console.log(`🔹 Secure Co-pilot is disabled for ${currentHostname}.`);
-    return; // Stop the script from running
+    return;
   }
 
-  //If not disabled, proceed with initialization ---
   initializeCopilot();
 })();
 
@@ -23,17 +23,14 @@ function initializeCopilot() {
     DISMISS_BUTTON_ID: 'dismissSuggestion',
   };
 
-  // --- UX: Cache dismissed suggestions to prevent re-appearing ---
   const dismissedTextCache = new Set();
-  // Clear the cache every 5 minutes to prevent it from growing too large
   setInterval(() => {
     dismissedTextCache.clear();
     console.log("🔹 Secure Co-pilot dismissal cache cleared.");
   }, 5 * 60 * 1000);
 
-  let elementCounter = 0; // To create unique IDs for text elements
+  let elementCounter = 0;
 
-  // Debounce function — ensures we wait before sending text to AI
   function debounce(func, delay) {
     let timer;
     return (...args) => {
@@ -42,7 +39,6 @@ function initializeCopilot() {
     };
   }
 
-  // Throttle function — ensures a function is not called more than once per delay
   function throttle(func, delay) {
     let inProgress = false;
     return (...args) => {
@@ -57,16 +53,13 @@ function initializeCopilot() {
     };
   }
 
-  // Robust message passing utility
   function sendMessageToBackground(message, callback) {
     chrome.runtime.sendMessage(message, (response) => {
       if (chrome.runtime.lastError) {
         if (chrome.runtime.lastError.message.includes('Extension context invalidated')) {
           alert('Secure Copilot was updated. Please refresh this tab to continue.');
-          // Optionally, auto-reload: window.location.reload();
           return;
         }
-        // Handle other errors
         console.error('Message error:', chrome.runtime.lastError);
         return;
       }
@@ -74,43 +67,36 @@ function initializeCopilot() {
     });
   }
 
-  // Listen for update notifications from the service worker
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'copilot_update') {
       alert('Secure Copilot was updated. Please refresh this tab for best results.');
-      // Or auto-reload: window.location.reload();
     }
   });
 
-  // Add listeners to text fields and editable divs
   function attachListeners() {
     const inputs = document.querySelectorAll('textarea, [contenteditable]');
     inputs.forEach((el) => {
       if (el.getAttribute(CONSTANTS.SECURE_COPILOT_ATTACHED_ATTR)) return;
 
-      // Assign a unique ID for this session
       const elementId = `secure-copilot-element-${elementCounter++}`;
       el.setAttribute(CONSTANTS.SECURE_COPILOT_ID_ATTR, elementId);
       el.setAttribute(CONSTANTS.SECURE_COPILOT_ATTACHED_ATTR, "true");
 
       const handleInput = debounce(async () => {
         const text = el.value || el.innerText;
-        if (dismissedTextCache.has(text.trim())) return; // Don't re-suggest for dismissed text
-        if (!text || text.trim().length < 10) return; // ignore short text
+        if (dismissedTextCache.has(text.trim())) return;
+        if (!text || text.trim().length < 10) return;
 
         console.log("📝 Sending text to AI:", text);
-        // Fire-and-forget: send text and element ID to the service worker
         sendMessageToBackground({ action: 'analyzeText', text, elementId });
-      }, 1000); // 1s debounce delay
+      }, 1000);
 
       el.addEventListener("input", handleInput);
 
-      // Add focus for icon visibility
       el.addEventListener("focus", () => showFocusIcon(el, elementId));
     });
   }
 
-  // Listen for suggestions from the service worker
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "showSuggestion") {
       const { elementId, suggestion, type, reason } = message;

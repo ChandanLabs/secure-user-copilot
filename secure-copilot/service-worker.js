@@ -1,9 +1,6 @@
-// service-worker.js
-// Secure Co-pilot - Background Service Worker (AI Chain, settings-aware)
 
+// This ensures the service worker handles messages efficiently without duplicates.
 console.log("🧠 Secure Co-pilot service worker running... (v2.0)");
-
-// ---------- AI Session Management ----------
 let textSession = null;
 
 async function initializeAiSession() {
@@ -21,15 +18,11 @@ async function initializeAiSession() {
     console.log("✅ Secure Co-pilot: AI text session created successfully.");
   } catch (error) {
     console.error("Secure Co-pilot: Error initializing AI session:", error);
-    // Retry after 5 seconds
     setTimeout(initializeAiSession, 5000);
   }
 }
 
-// Initialize the AI session when the service worker starts
 initializeAiSession();
-
-// ---------- Fallback logic (works without chrome.ai) ----------
 function quickClassifier(text) {
   const lower = text.toLowerCase();
   const problematic = ["lazy", "stupid", "idiot", "incompetent", "worst", "always late", "never", "terrible", "horrible", "inappropriate"];
@@ -67,18 +60,17 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // ---------- Messaging & AI chain ----------
 
-// Main message listener (content script -> background)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'checkAI') {
     sendResponse({ available: !!textSession });
-    return; // No need to return true, as this is a synchronous response
+    return;
   } else if (message.action === 'analyzeText') {
     (async () => {
       const responsePayload = { suggestion: null, classification: null, error: null };
       try {
         const { enabled = true, mode = 'auto', disabledSites = [] } = await chrome.storage.local.get(['enabled', 'mode', 'disabledSites']);
         if (!enabled) {
-          return; // Disabled
+          return;
         }
 
         const tabId = sender.tab?.id;
@@ -86,27 +78,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const tab = await chrome.tabs.get(tabId);
           const hostname = tab.url ? new URL(tab.url).hostname : null;
           if (hostname && disabledSites.includes(hostname)) {
-            return; // Site disabled
+            return;
           }
         }
 
         const { text, elementId } = message;
         if (!text || text.trim().length < 10) {
-          return; // Text too short
+          return;
         }
 
         let classification, suggestion, type;
 
-        // Apply user mode
         let effectiveMode = mode;
         if (effectiveMode === 'professional') {
-          classification = 'Problematic'; // Force rewrite
+          classification = 'Problematic';
         } else if (effectiveMode === 'grammar') {
-          classification = 'Professional'; // Force proofread
+          classification = 'Professional';
         } else {
-          // Auto mode
           if (textSession) {
-            // Use the AI session for processing
             const result = await textSession.prompt(`Classify the text as "Professional", "Casual", or "Problematic". If it's not "Professional", rewrite it. If it is, proofread it. Output JSON: {"classification": "...", "suggestion": "..."}\n\nText: "${text}"`);
             
             try {
@@ -114,14 +103,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               classification = parsed.classification;
               suggestion = parsed.suggestion;
             } catch (e) {
-              // Fallback parsing: find JSON in the response
               const jsonMatch = result.match(/\{.*\}/s);
               if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
                 classification = parsed.classification;
                 suggestion = parsed.suggestion;
               } else {
-                // Final fallback: treat the whole response as the suggestion
                 classification = quickClassifier(text);
                 suggestion = result;
               }
@@ -129,7 +116,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             type = (classification === 'Problematic' || classification === 'Casual') ? 'Rewrite' : 'Grammar';
 
           } else {
-            // Fallback to quick local functions
             classification = quickClassifier(text);
             if (classification === 'Problematic' || classification === 'Casual') {
               suggestion = quickRewrite(text);
@@ -158,6 +144,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     })();
 
-    return true; // Indicate we'll respond asynchronously
+    return true;
   }
 });
