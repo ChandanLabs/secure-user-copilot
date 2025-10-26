@@ -42,11 +42,11 @@ function quickClassifier(text) {
 
 function quickRewrite(text) {
   return text
-    .replace(/\blazy\b/gi, "[needs improvement with punctuality/effort]")
+    .replace(/\blazy\b/gi, "needs improvement with punctuality and effort")
     .replace(/\bidiot\b/gi, "[inappropriate term removed]")
-    .replace(/\bincompetent\b/gi, "[requires additional support/training]")
+    .replace(/\bincompetent\b/gi, "requires additional support and training")
     .replace(/\balways late\b/gi, "needs to improve punctuality")
-    .replace(/\bterrible\b/gi, "[negative wording; be specific about issues]");
+    .replace(/\bterrible\b/gi, "needs improvement in performance");
 }
 
 function quickProofread(text) {
@@ -67,17 +67,12 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // ---------- Messaging & AI chain ----------
 
-// Check AI availability
+// Main message listener (content script -> background)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'checkAI') {
     sendResponse({ available: !!textSession });
-    return;
-  }
-});
-
-// Main message listener (content script -> background)
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'analyzeText') {
+    return; // No need to return true, as this is a synchronous response
+  } else if (message.action === 'analyzeText') {
     (async () => {
       const responsePayload = { suggestion: null, classification: null, error: null };
       try {
@@ -112,21 +107,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Auto mode
           if (textSession) {
             // Use the AI session for processing
-            const result = await textSession.prompt(`Analyze the following text and classify it as "Professional", "Casual", or "Problematic". Then, if it is "Problematic" or "Casual", rewrite it to be more professional. If it is "Professional", proofread it for grammar and spelling.
-
-Text: "${text}"
-
-Output in JSON format: {"classification": "...", "suggestion": "..."}`);
+            const result = await textSession.prompt(`Classify the text as "Professional", "Casual", or "Problematic". If it's not "Professional", rewrite it. If it is, proofread it. Output JSON: {"classification": "...", "suggestion": "..."}\n\nText: "${text}"`);
             
             try {
               const parsed = JSON.parse(result);
               classification = parsed.classification;
               suggestion = parsed.suggestion;
             } catch (e) {
-              // Fallback parsing
-              const lines = result.split('\n');
-              classification = lines[0].trim();
-              suggestion = lines.slice(1).join('\n').trim();
+              // Fallback parsing: find JSON in the response
+              const jsonMatch = result.match(/\{.*\}/s);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                classification = parsed.classification;
+                suggestion = parsed.suggestion;
+              } else {
+                // Final fallback: treat the whole response as the suggestion
+                classification = quickClassifier(text);
+                suggestion = result;
+              }
             }
             type = (classification === 'Problematic' || classification === 'Casual') ? 'Rewrite' : 'Grammar';
 
@@ -152,6 +150,9 @@ Output in JSON format: {"classification": "...", "suggestion": "..."}`);
       } catch (err) {
         console.error('Secure Co-pilot: failure in analyze pipeline', err);
         responsePayload.error = (err && err.message) || String(err);
+        if (sender.tab?.id) {
+          chrome.tabs.sendMessage(sender.tab.id, { action: "analysisError", error: responsePayload.error });
+        }
       } finally {
         sendResponse(responsePayload);
       }

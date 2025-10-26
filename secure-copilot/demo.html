@@ -1,29 +1,66 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Co-pilot Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .note {
+            background-color: #e8f4fd;
+            padding: 10px;
+            border-left: 4px solid #007acc;
+            margin: 20px 0;
+        }
+        .note h3 {
+            margin-top: 0;
+            color: #007acc;
+        }
+    </style>
 </head>
 <body>
-    <h1>Secure Co-pilot Demo Page</h1>
-    <p>This is a demo page to test the Secure Co-pilot extension. Type in the textareas below to trigger AI suggestions.</p>
-
-    <h2>Textarea 1</h2>
-    <textarea id="textarea1" rows="4" cols="50" placeholder="Type something here..."></textarea>
-
-    <h2>Textarea 2</h2>
-    <textarea id="textarea2" rows="4" cols="50" placeholder="Type something else here..."></textarea>
-
-    <h2>ContentEditable Div</h2>
-    <div contenteditable="true" id="editableDiv" style="border: 1px solid #ccc; padding: 10px; min-height: 100px;">
-        This is an editable div. Type here to test.
+    <h1>Secure Co-pilot Demo</h1>
+    <div class="note">
+        <h3>How to Test:</h3>
+        <p>1. Make sure the Secure Co-pilot extension is loaded in Chrome.</p>
+        <p>2. Type some text in the textarea below (at least 10 characters).</p>
+        <p>3. Wait a moment - the extension should show AI suggestions if it detects issues.</p>
+        <p>4. Try different types of text: professional, casual, or problematic language.</p>
     </div>
 
-    <script>
-        // Optional: Add some sample text for testing
-        document.getElementById('textarea1').value = "This is a sample text that might need improvement.";
-        document.getElementById('textarea2').value = "Another example with potential issues.";
-    </script>
+    <h2>Test Textarea 1</h2>
+    <textarea placeholder="Type some text here to test the extension...">This is a test message. It might have some issues that the AI can help with.</textarea>
+
+    <h2>Test Textarea 2</h2>
+    <textarea placeholder="Another textarea for testing...">Hey guys, this is kinda informal and might need some improvements lol.</textarea>
+
+    <h2>Test Textarea 3</h2>
+    <textarea placeholder="One more for testing...">The employee is always late and seems lazy in their work.</textarea>
+
+    <div class="note">
+        <h3>Expected Behavior:</h3>
+        <p>- For professional text: Grammar suggestions may appear.</p>
+        <p>- For casual/problematic text: Rewrite suggestions should appear.</p>
+        <p>- If AI APIs are not available, fallback suggestions will be used.</p>
+    </div>
 </body>
 </html>

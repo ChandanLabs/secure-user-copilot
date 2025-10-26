@@ -1,4 +1,3 @@
-// content.js
 (async () => {
   // Optimization: Check if the site is disabled before doing anything.
   const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
@@ -9,7 +8,7 @@
     return; // Stop the script from running
   }
 
-  // --- If not disabled, proceed with initialization ---
+  //If not disabled, proceed with initialization ---
   initializeCopilot();
 })();
 
@@ -176,7 +175,8 @@ function initializeCopilot() {
       bubble.style.zIndex = "2147483647";
       // Position at top-right corner of the element, with a small offset
       bubble.style.top = `${window.scrollY + rect.top + 5}px`;
-      bubble.style.left = `${window.scrollX + rect.right - 33}px`; // Approx width of icon + padding
+      // 33px is the approx width of the icon (28px) + padding (5px)
+      bubble.style.left = `${window.scrollX + rect.right - 33}px`;
 
       // Adjust tooltip for screen edges
       const tooltipRect = tooltip.getBoundingClientRect();
@@ -184,7 +184,7 @@ function initializeCopilot() {
         tooltip.style.left = '0px';
         tooltip.style.right = 'auto';
       } else if (tooltipRect.right > window.innerWidth) {
-        tooltip.style.right = '0px';
+        tooltip.style.right = '100%';
         tooltip.style.left = 'auto';
       }
     };
@@ -236,19 +236,6 @@ function initializeCopilot() {
     bubble.style.zIndex = "2147483647";
     bubble.style.top = `${window.scrollY + rect.top + 5}px`;
     bubble.style.left = `${window.scrollX + rect.right - 33}px`;
-
-    // Add click listener to icon to show tooltip
-    icon.addEventListener('click', () => {
-      // For now, just show a placeholder tooltip
-      const tooltip = document.createElement('div');
-      tooltip.className = 'secure-copilot-tooltip';
-      tooltip.textContent = 'No suggestions yet. Keep typing!';
-      bubble.appendChild(tooltip);
-      // Make tooltip visible immediately
-      tooltip.style.opacity = '1';
-      tooltip.style.transform = 'translateY(0)';
-      tooltip.style.pointerEvents = 'auto';
-    });
   }
 
   // Add global CSS for bubble (IMPROVED)
@@ -343,9 +330,8 @@ function initializeCopilot() {
   document.querySelectorAll('form').forEach(form => {
     observer.observe(form, { childList: true, subtree: true });
   });
-  // Fallback to body if no forms
-  if (document.querySelectorAll('form').length === 0) {
-    observer.observe(document.body, { childList: true, subtree: false });
-  }
-
+      // Fallback to body if no forms
+      if (document.querySelectorAll('form').length === 0) {
+          observer.observe(document.body, { childList: true, subtree: true });
+      }
 } // End of initializeCopilot function
