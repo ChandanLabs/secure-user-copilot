@@ -1,9 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Secure Co-pilot",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Proactive, privacy-first AI assistant for sensitive text fields",
-  "permissions": ["storage", "activeTab", "scripting", "ai"],
+  "permissions": ["storage", "activeTab", "scripting"],
+  "trial_tokens": [
+  "A29+5CaRioTBXDEjTpAddKKqtCHIm/14d2BmLOS92c+YSphIeCkbFph0jGy2Ns01LLBn4HuX8CpxYYi0N+LbowgAAACPeyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYmlsZWtvcGtvZmFpYWdsamhuYmloaGVkaWZraGtkYWgiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElNdWx0aW1vZGFsSW5wdXQiLCJleHBpcnkiOjE3NzQzMTA0MDAsImlzVGhpcmRQYXJ0eSI6dHJ1ZX0=",
+  "A+ctvf+ISVICLAEDHRcbRoEtjgSECZp09f9BYCnrY/+cwz7o9NPnsGyAZYk5rmSBhY03broHNEE4aWZLIsVQ+wMAAACFeyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYmlsZWtvcGtvZmFpYWdsamhuYmloaGVkaWZraGtkYWgiLCJmZWF0dXJlIjoiQUlQcm9vZnJlYWRlckFQSSIsImV4cGlyeSI6MTc3OTE0ODgwMCwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==",
+  "A7A0SZPsblk1SIctlFYfy3zbGocRo/cRDNOaZWL1YvncJ0Ji8CWIBszMTOLSkD1XDGL3ilxLqTFtBP/T3uzzAwQAAACAeyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYmlsZWtvcGtvZmFpYWdsamhuYmloaGVkaWZraGtkYWgiLCJmZWF0dXJlIjoiQUlXcml0ZXJBUEkiLCJleHBpcnkiOjE3Njk0NzIwMDAsImlzVGhpcmRQYXJ0eSI6dHJ1ZX0="
+],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "service-worker.js"
